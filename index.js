@@ -64,5 +64,11 @@ Job.prototype.start = function start(ee) {
 };
 
 module.exports = function (job) {
-  return new Job(job);
+  var ee  = new (require('events').EventEmitter)();
+  var job = new Job(job);
+  process.nextTick(function () {
+    job.start(ee);
+  });
+  return ee;
 }
+module.exports.Job = Job;

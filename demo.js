@@ -7,7 +7,7 @@ var job = {};
 job.exec  = 'sleep';
 job.args  = ['1'];
 
-var job = supervise(job);
+var job = new supervise.Job(job);
 
 var ee  = new EventEmitter();
 
