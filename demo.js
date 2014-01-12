@@ -1,15 +1,9 @@
 var supervise = require('./index.js');
 
-var EventEmitter = require('events').EventEmitter;
-
-var job = {};
-
-job.exec  = 'sleep';
-job.args  = ['1'];
-
-var job = new supervise.Job(job);
-
-var ee  = new EventEmitter();
+var ee = supervise({
+  exec: 'node',
+  args: ['server.js']
+});
 
 ee.on('run', function start(proc) {
   proc.stdout.pipe(process.stdout);
@@ -24,9 +18,3 @@ ee.on('die', function fault(code, signal) {
 ee.on('end', function finish() {
   console.log("----> end");
 });
-
-job.start(ee);
-
-setTimeout(function () {
-  job.trap = false;
-},5000);

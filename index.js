@@ -26,9 +26,8 @@ Job.prototype._proc = function _proc() {
   return proc;
 }
 
-// code == 0, success
-// code != 0, failure
 Job.prototype.restart = function (cb) {
+  // only restart if trapping
   cb(this.trap);
 }
 
@@ -63,9 +62,9 @@ Job.prototype.start = function start(ee) {
   });
 };
 
-module.exports = function (job) {
+module.exports = function (stanza) {
   var ee  = new (require('events').EventEmitter)();
-  var job = new Job(job);
+  var job = new Job(stanza);
   process.nextTick(function () {
     job.start(ee);
   });
