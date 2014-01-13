@@ -7,11 +7,6 @@ function Job(job) {
   this._args = job.args || [];
   this._cwd  = job.cwd  || process.cwd();
   this._envs = job.envs || process.env;
-  
-  // trap is a public property
-  // the default restart behavior will only restart
-  // if this.trap is true
-  this.trap = true;
 }
 
 Job.prototype._proc = function _proc() {
@@ -26,26 +21,10 @@ Job.prototype._proc = function _proc() {
   return proc;
 }
 
-Job.prototype.restart = function (cb) {
-  // only restart if trapping
-  cb(this.trap);
-}
-
 // start a process that will be restarted if it dies
 Job.prototype.start = function start(ee) {
   var self = this;
   var proc = this._proc();
-
-  // either restart the process, or emit an end event 
-  // once the end event is emitted, the process no
-  // longer restart or runs
-  function retry(ok) {
-    if (ok) {
-      self.start(ee);
-    } else {
-      ee.emit('end');
-    }
-  };
 
   // we need to pass the new process each time one starts
   // people may want to pipe to proc.stdin, etc
@@ -56,18 +35,27 @@ Job.prototype.start = function start(ee) {
   // the restart logic is entirely governed by this.restart
   // users can feel free to replace this.restart as they like
   proc.on('exit', function (code, signal) {
-    ee.emit('die', code, signal);
-
-    self.restart(retry);
+    ee.emit('die', code, signal, self);
   });
 };
 
-module.exports = function (stanza) {
+function default_retry(code, signal, job) {
+  var ee = this;
+  if (code!==0) setTimeout(function () {
+    job.start(ee);
+  }, 100)
+  else ee.emit('end');
+}
+
+module.exports = function (stanza, retry) {
   var ee  = new (require('events').EventEmitter)();
   var job = new Job(stanza);
+  
+  ee.on('die', retry || default_retry);
   process.nextTick(function () {
     job.start(ee);
   });
+
   return ee;
 }
 module.exports.Job = Job;
