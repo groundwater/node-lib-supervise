@@ -40,6 +40,11 @@ Job.prototype.start = function start() {
   var self = this;
   var proc = this._proc();
 
+  // forward errors
+  proc.on('error', function (err) {
+    self.emit('error', err);
+  });
+
   // we need to pass the new process each time one starts
   // people may want to pipe to proc.stdin, etc
   // remember that this happens synchronously
