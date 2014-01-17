@@ -14,6 +14,8 @@ function Job(job) {
   this.cwd  = job.cwd  || process.cwd();
   this.uid  = job.uid  || process.getuid();
   this.gid  = job.gid  || process.getgid();
+
+  this.proc = null;
 }
 
 util.inherits(Job, events.EventEmitter);
@@ -32,13 +34,20 @@ Job.prototype._proc = function _proc() {
   return proc;
 }
 
-// start a process
-// this function is actually stateless,
-// calling it with two separate event emitters will
-// start two disjoint processes
+Job.prototype.retry = function retry() {
+  // nothing happens by default
+  //
+  // you're supposed to replace this function
+  // with whatever restart behavior you want
+  //
+  // you can also just put null here
+  // and it won't be called
+}
+
+// start monitoring the processes
 Job.prototype.start = function start() {
   var self = this;
-  var proc = this._proc();
+  var proc = this.proc = this._proc();
 
   // forward errors
   proc.on('error', function (err) {
@@ -51,10 +60,16 @@ Job.prototype.start = function start() {
   self.emit('run', proc);
 
   // the decision to restart on death or not is delegated
-  // the the event emitter. If you want to restart, it's easy:
+  // the the restart method. If you want to restart, it's easy:
   // just call job.start() again
+  // 
+  // the restart function is a single function, not an
+  // event because you really only want one function handling
+  // the restart decisions, adding multiple listeners could be bad
   proc.on('exit', function (code, signal) {
     self.emit('die', code, signal);
+    if (self.retry) self.retry(code, signal);
+    else self.emit('end');
   });
 };
 
@@ -77,7 +92,7 @@ function option_start(stanza, option_retry) {
 function start(stanza, retry) {
   var job = new Job(stanza);
   
-  job.on('die', retry);
+  job.retry = retry;
 
   // nextTick the start event because the returned
   // event emitter needs to have listeners attached

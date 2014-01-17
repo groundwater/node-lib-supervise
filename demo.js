@@ -1,8 +1,10 @@
 var supervise = require('./index.js');
 
+var fail = 0;
+
 var ee = supervise({
-  exec: 'node',
-  args: ['server.js']
+  exec : 'node',
+  args : ['server.js']
 });
 
 ee.on('run', function start(proc) {
@@ -12,9 +14,15 @@ ee.on('run', function start(proc) {
 });
 
 ee.on('die', function fault(code, signal) {
-  console.log("----> die", code, signal);
+  // stop trapping after 5 failures
+  if (++fail > 4) ee.retry = null;
+  console.log("----> die", fail);
 });
 
-ee.on('end', function finish() {
-  console.log("----> end");
+ee.on('error', function (err) {
+  console.log("----> error", err);
+});
+
+ee.on('end', function () {
+  console.log('END');
 });
