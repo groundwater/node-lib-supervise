@@ -27,6 +27,7 @@ Job.prototype._proc = function _proc() {
     cwd   : this.cwd,
     uid   : this.uid,
     gid   : this.gid,
+    env   : this.envs,
     stdio : PIPE
   };
   var proc = spawn(exec, args, opts);
