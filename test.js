@@ -8,6 +8,9 @@ var job = supervise({
   args : ['server.js']
 });
 
+// start should only be triggered once
+job.start();
+
 job.on('run', function start(proc) {
   // this should be our process
   assert(proc);

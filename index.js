@@ -47,6 +47,8 @@ Job.prototype.retry = function retry() {
 
 // start monitoring the processes
 Job.prototype.start = function start() {
+  if (this.proc) return;
+
   var self = this;
   var proc = this.proc = this._proc();
 
@@ -68,6 +70,7 @@ Job.prototype.start = function start() {
   // event because you really only want one function handling
   // the restart decisions, adding multiple listeners could be bad
   proc.on('exit', function (code, signal) {
+    self.proc = null;
     self.emit('die', code, signal);
     if (self.retry) self.retry(code, signal);
     else self.emit('end');
