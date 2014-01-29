@@ -11,21 +11,20 @@ var job = supervise({
 // start should only be triggered once
 job.start();
 
+var i=0;
 job.on('run', function start(proc) {
   // this should be our process
   assert(proc);
+  i++;
 });
 
 job.on('die', function fault(code, signal) {
-  // stop trapping after 5 failures
-  if (++fail > 4) job.retry = null;
-
   // the test process throws, which produces an exit code of 8
   assert.equal(code, 8);
-});
 
-job.on('end', function () {
-  // we should have run 5 times
-  assert.equal(fail, 5);
+  // restart 5 times
+  if (i<4) return this.start();
+
+  assert(i, 5);
   console.log('ok');
 });

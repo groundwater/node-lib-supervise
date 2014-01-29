@@ -35,16 +35,6 @@ Job.prototype._proc = function _proc() {
   return proc;
 }
 
-Job.prototype.retry = function retry() {
-  // nothing happens by default
-  //
-  // you're supposed to replace this function
-  // with whatever restart behavior you want
-  //
-  // you can also just put null here
-  // and it won't be called
-}
-
 // start monitoring the processes
 Job.prototype.start = function start() {
   if (this.proc) return;
@@ -72,32 +62,12 @@ Job.prototype.start = function start() {
   proc.on('exit', function (code, signal) {
     self.proc = null;
     self.emit('die', code, signal);
-    if (self.retry) self.retry(code, signal);
-    else self.emit('end');
   });
 };
 
-// if the process dies with non-zero exit code,
-// wait 100ms and try again to avoid peggin the CPU
-function default_retry(code, signal) {
-  var ee = this;
-  if (code!==0) setTimeout(function () {
-    ee.start();
-  }, 100)
-  else ee.emit('end');
-}
-
-function option_start(stanza, option_retry) {
-  var retry = option_retry || default_retry;
-
-  return start(stanza, retry);
-}
-
-function start(stanza, retry) {
+function start(stanza) {
   var job = new Job(stanza);
   
-  job.retry = retry;
-
   // nextTick the start event because the returned
   // event emitter needs to have listeners attached
   // otherwise we're going to miss catching the first process
@@ -108,6 +78,5 @@ function start(stanza, retry) {
   return job;
 }
 
-module.exports       = option_start;
-module.exports.start = start;
+module.exports       = start;
 module.exports.Job   = Job;
