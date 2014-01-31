@@ -9,30 +9,21 @@ npm install --save lib-supervise
 ## Usage
 
 ```javascript
-var supervise = require('lib-supervise');
-
-var job = supervise({
-  exec: 'node',
-  args: ['server.js']
+var Supervisor = require('lib-supervisor');
+var supervisor = Supervisor.NewFromObject({ 
+  exec : 'ls'
 });
 
-job.on('run', function start(proc) {
-  proc.stdout.pipe(process.stdout);
-  proc.stderr.pipe(process.stdout);
-  console.log("----> job", proc.pid);
+supervisor.events.on('start', function (proc) {
+  // new proccess started
 });
 
-job.on('die', function fault(code, signal) {
-  console.log("----> die", code, signal);
+supervisor.events.on('exit', function (code, signal) {
+  // current process exited
+
+  // restart
+  supervisor.start();
 });
 
-job.on('end', function finish() {
-  console.log("----> end");
-});
+supervisor.start();
 ```
-
-## Details
-
-1. supervise always creates pipes to the child process,
-   so you should do something with them
-2. child process error events are caught and send to `job.error`
