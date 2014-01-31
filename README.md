@@ -9,7 +9,7 @@ npm install --save lib-supervise
 ## Usage
 
 ```javascript
-var Supervisor = require('lib-supervisor');
+var Supervisor = require('lib-supervisor')();
 var supervisor = Supervisor.NewFromObject({ 
   exec : 'ls'
 });
