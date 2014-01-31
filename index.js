@@ -105,8 +105,8 @@ function INIT(deps) {
   else                          throw new Error('bad dependency injection');
 };
 
-INIT.inject    = inject;
-INIT.defaults  = defaults;
-INIT.Supervisor       = Supervisor;
+INIT.inject      = inject;
+INIT.defaults    = defaults;
+INIT.Supervisor  = Supervisor;
 
-module.exports = INIT;
+module.exports   = INIT;
