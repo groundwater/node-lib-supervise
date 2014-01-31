@@ -1,30 +1,32 @@
-var assert    = require('assert');
-var supervise = require('./index.js');
+var assert = require('assert');
 
-var fail = 0;
+var Supervisor = require('./index.js')();
+var supervisor = Supervisor.NewFromObject({ exec: process.argv[0], args: ['sleep.js', '5'] });
 
-var job = supervise({
-  exec : 'node',
-  args : ['server.js']
+var i = 0;
+
+supervisor.events.on('start', function (proc) {
+  i += 0100;
+});
+supervisor.events.on('exit', function (code, signal) {
+  clearTimeout(kill);
+  if (signal !== 'SIGKILL') throw new Error();
+  i += 0010;
 });
 
-// start should only be triggered once
-job.start();
+if ( supervisor.start() !== 0) throw new Error();
+if ( supervisor.start() === 0) throw new Error();
 
-var i=0;
-job.on('run', function start(proc) {
-  // this should be our process
-  assert(proc);
-  i++;
-});
+setTimeout(function () {
+  i += 0001;
+  supervisor.kill();
+}, 1000);
 
-job.on('die', function fault(code, signal) {
-  // the test process throws, which produces an exit code of 8
-  assert.equal(code, 8);
+var kill = setTimeout(function () {
+  throw new Error();
+}, 2000);
 
-  // restart 5 times
-  if (i<4) return this.start();
-
-  assert(i, 5);
+process.on('exit', function () {
+  assert.equal(i, 0111);
   console.log('ok');
 });

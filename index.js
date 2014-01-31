@@ -1,82 +1,112 @@
-var events = require('events');
-var spawn  = require('child_process').spawn;
-var util   = require('util');
+var assert = require('assert');
 
-var PIPE = 'pipe';
+function Supervisor(Launcher) {
 
-function Job(job) {  
-  // super inheritance nonsense
-  events.EventEmitter(this);
+  this._Launcher = Launcher;
 
-  this.exec = job.exec;
-  this.args = job.args || [];
-  this.envs = job.envs || process.env;
-  this.cwd  = job.cwd  || process.cwd();
-  this.uid  = job.uid  || process.getuid();
-  this.gid  = job.gid  || process.getgid();
+  // Supervisor
+  this.launcher = null;
 
-  this.proc = null;
+  // Process
+  this.current  = null;
+
+  // EventEmitter
+  this.events   = null;
 }
 
-util.inherits(Job, events.EventEmitter);
-
-Job.prototype._proc = function _proc() {
-  var exec = this.exec;
-  var args = this.args;
-  var opts = {
-    cwd   : this.cwd,
-    uid   : this.uid,
-    gid   : this.gid,
-    env   : this.envs,
-    stdio : PIPE
-  };
-  var proc = spawn(exec, args, opts);
-
-  return proc;
-}
-
-// start monitoring the processes
-Job.prototype.start = function start() {
-  if (this.proc) return;
-
-  var self = this;
-  var proc = this.proc = this._proc();
-
-  // forward errors
-  proc.on('error', function (err) {
-    self.emit('error', err);
-  });
-
-  // we need to pass the new process each time one starts
-  // people may want to pipe to proc.stdin, etc
-  // remember that this happens synchronously
-  self.emit('run', proc);
-
-  // the decision to restart on death or not is delegated
-  // the the restart method. If you want to restart, it's easy:
-  // just call job.start() again
-  // 
-  // the restart function is a single function, not an
-  // event because you really only want one function handling
-  // the restart decisions, adding multiple listeners could be bad
-  proc.on('exit', function (code, signal) {
-    self.proc = null;
-    self.emit('die', code, signal);
-  });
+Supervisor.prototype.ERROR = {
+  EXISTS: 0100
 };
 
-function start(stanza) {
-  var job = new Job(stanza);
+Supervisor.prototype.start = function () {
+  var err = 0;
+  if (this.current) {
+    err = this.ERROR.EXISTS;
+  } else {
+    this.current = this.launcher.start();
+    this.events.emit('start', this.current);
+  }
+  return err;
+};
+
+Supervisor.prototype.SIGNAL = {
+  KILL: 'SIGKILL',
+  QUIT: 'SIGQUIT'
+};
+
+Supervisor.prototype.stop = function () {
+  this.current.kill(this.SIGNAL.QUIT);
+};
+
+Supervisor.prototype.kill = function () {
+  this.current.kill(this.SIGNAL.KILL);
+};
+
+Supervisor.NewEmpty = function () {
+  return new Supervisor(this.Launcher);
+};
+
+Supervisor.NewWithEmitter = function (ee) {
+  var supervisor = this.NewEmpty();
+  supervisor.events = ee;
+  return supervisor;
+};
+
+Supervisor.NewFromObject = function (obj) {
+  var supervisor    = this.New();
+  var launch = this.Launcher.NewFromObject(obj);
   
-  // nextTick the start event because the returned
-  // event emitter needs to have listeners attached
-  // otherwise we're going to miss catching the first process
-  process.nextTick(function () {
-    job.start();
+  // bubble events
+  launch.events.on('exit', function (code, signal) {
+    supervisor.events.emit('exit', code, signal);
+  });
+  launch.events.on('error', function (err) {
+    supervisor.events.emit('error', err);
   });
 
-  return job;
-}
+  supervisor.launcher = launch;
 
-module.exports       = start;
-module.exports.Job   = Job;
+  return supervisor;
+};
+
+Supervisor.New = function () {
+  return this.NewWithEmitter(this.emitter());
+};
+
+// custom injector
+function inject(deps) {
+  // assert dependencies
+  assert(deps.Launcher, 'Launcher dependency required');
+
+  return Object.create(Supervisor, deps);
+};
+
+// default injector
+function defaults() {
+  var EventEmitter = require('events').EventEmitter;
+  var launcher     = require('lib-launcher');
+  var deps  = {
+    Launcher: {
+      value: launcher()
+    },
+    emitter: {
+      value: function () {
+        return new EventEmitter();
+      }
+    }
+  }
+  return inject(deps);
+};
+
+// module method
+function INIT(deps) {
+  if (typeof deps === 'object') return inject(deps);
+  else if (deps === undefined)  return defaults();
+  else                          throw new Error('bad dependency injection');
+};
+
+INIT.inject    = inject;
+INIT.defaults  = defaults;
+INIT.Supervisor       = Supervisor;
+
+module.exports = INIT;
