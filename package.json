@@ -1,6 +1,6 @@
 {
   "name": "lib-supervise",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "supervise a single child process",
   "main": "index.js",
   "author": "Jacob Groundwater <groundwater@gmail.com>",
