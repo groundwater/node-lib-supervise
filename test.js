@@ -19,7 +19,7 @@ if ( supervisor.start() === 0) throw new Error();
 
 setTimeout(function () {
   i += 0001;
-  supervisor.kill();
+  supervisor.signal('SIGKILL');
 }, 1000);
 
 var kill = setTimeout(function () {

@@ -29,17 +29,8 @@ Supervisor.prototype.start = function () {
   return err;
 };
 
-Supervisor.prototype.SIGNAL = {
-  KILL: 'SIGKILL',
-  QUIT: 'SIGQUIT'
-};
-
-Supervisor.prototype.stop = function () {
-  this.current.kill(this.SIGNAL.QUIT);
-};
-
-Supervisor.prototype.kill = function () {
-  this.current.kill(this.SIGNAL.KILL);
+Supervisor.prototype.signal = function (signal) {
+  this.current.kill(signal);
 };
 
 Supervisor.NewEmpty = function () {
